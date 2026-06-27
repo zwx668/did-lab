@@ -1,0 +1,6 @@
+*.py
+backend/
+*.bat
+*.zip
+translate.py
+fix_en.py

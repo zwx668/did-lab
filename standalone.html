@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DiD Lab — Difference-in-Differences Online Analysis</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+ --bg:#f8f7f4;--surface:#fff;--text:#1a1a1a;--text2:#555;--text3:#999;
+ --accent:#2a3a5c;--accent-hover:#1a2840;--accent-light:#edf0f6;--accent-border:#d5dbe8;
+ --border:#e6e3dd;--border2:#d0ccc5;--shadow:0 1px 3px rgba(0,0,0,.03),0 3px 12px rgba(0,0,0,.05);
+ --radius:12px;--radius-sm:7px;--font:'Inter',-apple-system,sans-serif;--font-serif:'Newsreader',Georgia,serif;--font-mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;min-height:100vh;line-height:1.6;letter-spacing:-.01em}
+nav{width:260px;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;padding:36px 28px;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+nav h1{font-family:var(--font-serif);font-size:1.35rem;font-weight:600;color:var(--text);margin-bottom:2px;letter-spacing:-.02em}
+nav .subtitle{font-size:.72rem;color:var(--text3);margin-bottom:40px;font-weight:400;letter-spacing:0}
+nav a.nav-link{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);font-size:.88rem;color:var(--text2);text-decoration:none;margin-bottom:2px;font-weight:450;transition:all .2s ease}
+nav a.nav-link:hover{background:#f5f4f0;color:var(--text)}
+nav a.nav-link.active{background:var(--accent-light);color:var(--accent);font-weight:550}
+nav .nav-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#eeece6;font-size:.7rem;font-weight:600;color:var(--text3);flex-shrink:0}
+nav a.nav-link.active .nav-badge{background:var(--accent);color:#fff}
+nav .tribute{margin-top:auto;padding-top:24px;border-top:1px solid var(--border)}
+nav .tribute h4{font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;font-weight:500}
+nav .tribute .portraits{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:10px}
+nav .tribute .portrait{text-align:center}
+nav .tribute .portrait-circle{width:48px;height:48px;border-radius:50%;overflow:hidden;margin:0 auto 4px;border:2px solid var(--border)}
+nav .tribute .portrait-circle img{width:100%;height:100%;object-fit:cover}
+nav .tribute .portrait-name{font-size:.63rem;color:var(--text2);font-weight:600;line-height:1.3}
+nav .tribute .portrait-years{font-size:.55rem;color:var(--text3)}
+nav .tribute .portrait-desc{font-size:.52rem;color:var(--text3);line-height:1.2;margin-top:1px}
+nav .tribute .dedication{font-size:.58rem;color:var(--text3);text-align:center;line-height:1.6;margin-top:10px;font-style:italic}
+nav .contact{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);text-align:center}
+nav .contact .c-name{font-size:.68rem;color:var(--text2);font-weight:550;letter-spacing:-.005em}
+nav .contact .c-email{font-size:.6rem;color:var(--text3);margin-top:2px;word-break:break-all}
+main{margin-left:260px;flex:1;padding:56px 72px;max-width:1060px}
+h2{font-family:var(--font-serif);font-size:2.1rem;font-weight:600;margin-bottom:6px;letter-spacing:-.02em;color:var(--text)}
+h2+p{color:var(--text2);margin-bottom:40px;font-size:.95rem;font-weight:400;letter-spacing:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card h3{font-family:var(--font-serif);font-size:1.05rem;font-weight:600;margin-bottom:18px;color:var(--text);letter-spacing:-.01em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s ease;font-family:var(--font);letter-spacing:-.005em;white-space:nowrap}
+.btn:hover{background:#f5f4f0;border-color:var(--border2)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:550}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.lg{padding:14px 28px;font-size:.95rem;font-weight:600}
+.btn.sm{padding:5px 14px;font-size:.78rem}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+label{display:block;font-size:.82rem;font-weight:550;margin-bottom:4px;color:var(--text);letter-spacing:-.005em}
+select,input[type=number],input[type=file]{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;font-family:var(--font);background:var(--surface);color:var(--text);transition:all .2s ease}
+select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(42,58,92,.08)}
+select[multiple]{min-height:100px}
+table{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums}
+th{background:#f8f7f4;padding:10px 14px;text-align:right;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);border-bottom:2px solid var(--border);font-weight:600}
+th:first-child,td:first-child{text-align:left}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:hover td{background:#fafaf8}
+#chart1{width:100%;height:440px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:28px}
+.stat{text-align:center;padding:20px 16px;background:#f8f7f4;border-radius:var(--radius-sm);border:1px solid var(--border)}
+.stat .v{font-size:1.25rem;font-weight:650;font-family:var(--font-mono);color:var(--text)}
+.stat .l{font-size:.62rem;color:var(--text3);text-transform:uppercase;margin-top:4px;letter-spacing:.06em;font-weight:500}
+.alert{padding:14px 18px;border-radius:var(--radius-sm);font-size:.84rem;margin-bottom:16px;font-weight:450}
+.alert.info{background:var(--accent-light);border:1px solid var(--accent-border);color:var(--accent)}
+.alert.warn{background:#fdf8f0;border:1px solid #f0dcc0;color:#8b6914}
+summary{font-weight:500;transition:color .2s}
+summary:hover{color:var(--accent-hover)}
+@media(max-width:768px){body{flex-direction:column}nav{width:100%;position:static;padding:20px}main{margin-left:0;padding:24px}.grid2,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav>
+ <h1>DiD Laboratory</h1>
+ <p class="subtitle">Difference-in-Differences · Online Analysis</p>
+ <a href="#" class="nav-link active" data-pg="data"><span class="nav-badge">1</span> Data Import</a>
+ <a href="#" class="nav-link" data-pg="setup"><span class="nav-badge">2</span> Model Setup</a>
+ <a href="#" class="nav-link" data-pg="results"><span class="nav-badge">3</span> Results</a>
+ <div class="tribute">
+ <h4>Acknowledgments</h4>
+ <div class="portraits">
+ <div class="portrait">
+ <div class="portrait-circle"><img src="images/john-snow.webp" alt="John Snow"></div>
+ <div class="portrait-name">John Snow</div>
+ <div class="portrait-years">1813–1858</div>
+ <div class="portrait-desc">1855 Cholera Source Tracing</div>
+ </div>
+ <div class="portrait">
+ <div class="portrait-circle"><img src="images/ashenfelter.webp" alt="Orley Ashenfelter"></div>
+ <div class="portrait-name">Orley Ashenfelter</div>
+ <div class="portrait-years">1942–</div>
+ <div class="portrait-desc">1978 Introduced to Econometrics</div>
+ </div>
+ <div class="portrait">
+ <div class="portrait-circle"><img src="images/david-card.jpg" alt="David Card"></div>
+ <div class="portrait-name">David Card</div>
+ <div class="portrait-years">1956–</div>
+ <div class="portrait-desc">1994 Minimum Wage Research</div>
+ </div>
+ <div class="portrait">
+ <div class="portrait-circle"><img src="images/alan-krueger.jpg" alt="Alan B. Krueger"></div>
+ <div class="portrait-name">Alan B. Krueger</div>
+ <div class="portrait-years">1960–2019</div>
+ <div class="portrait-desc">1994 Minimum Wage Research</div>
+ </div>
+</div>
+  <div class="contact"><div class="c-name">Zhou Wenxuan</div><div class="c-email">zwx2907899859@163.com</div></div>
+</nav>
+<main>
+<div id="pg-data">
+ <h2>Step 1: Upload Data</h2>
+ <p>This tool supports <strong>classic Difference-in-Differences (DID)</strong>: one treatment group, one control group, one well-defined policy implementation time.</p>
+ <div class="card">
+    <h3>Capabilities</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;font-size:.85rem;">
+      <div style="padding:20px 24px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);">
+        <strong style="color:var(--accent);font-size:.95rem;font-family:var(--font-serif);">Supported</strong>
+        <ul style="margin:10px 0 0 16px;line-height:2.1;color:var(--text2);">
+          <li><strong style="color:var(--text);">Classic 2x2 DID</strong> &mdash; One treatment group, one control group, two periods (pre and post)</li>
+          <li><strong style="color:var(--text);">Multi-Period Single-Cohort DID</strong> &mdash; Multi-period panel; all treated units receive treatment at the <strong style="color:var(--text);">same time</strong></li>
+          <li><strong style="color:var(--text);">Design with Never-Treated Controls</strong> &mdash; Some units are never treated, serving as a clean reference group</li>
+          <li><strong style="color:var(--text);">Parallel Trends Testing</strong> &mdash; Event study chart showing treatment effects by relative period (requires 3+ pre-policy periods)</li>
+          <li><strong style="color:var(--text);">Two-Way Fixed Effects (TWFE)</strong> &mdash; Controls for both unit and time fixed effects</li>
+          <li><strong style="color:var(--text);">Clustered Standard Errors</strong> &mdash; Clustered at the unit level to account for within-unit correlation</li>
+        </ul>
+      </div>
+      <div style="padding:20px 24px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border2);border-radius:var(--radius);">
+        <strong style="color:var(--text2);font-size:.95rem;font-family:var(--font-serif);">Not Yet Supported</strong>
+        <ul style="margin:10px 0 0 16px;line-height:2.1;color:var(--text3);">
+          <li><strong style="color:var(--text2);">Staggered DID</strong> &mdash; Treatment occurs at different times across units. For such data, use R's <code style="background:#f5f4f0;padding:1px 5px;border-radius:3px;font-size:.8rem;">did</code> package or Stata's <code style="background:#f5f4f0;padding:1px 5px;border-radius:3px;font-size:.8rem;">csdid</code> command</li>
+          <li><strong style="color:var(--text2);">Continuous Treatment Intensity</strong> &mdash; Treatment intensity varies across units (e.g. different tax rate changes)</li>
+          <li><strong style="color:var(--text2);">Triple Differences (DDD)</strong> &mdash; Adds a third comparison dimension beyond standard DID</li>
+          <li><strong style="color:var(--text2);">Synthetic Control Method (SCM)</strong> &mdash; Constructs a weighted synthetic counterfactual from multiple control units</li>
+          <li><strong style="color:var(--text2);">Dynamic Treatment Effect Heterogeneity</strong> &mdash; Complex decomposition of varying treatment effects across cohorts</li>
+        </ul>
+      </div>
+    </div>
+ <h3>Data Format Requirements</h3>
+ <p style="font-size:.82rem;color:#57534e;line-height:1.8;margin-bottom:12px;">
+ Upload <strong>.xlsx</strong> / <strong>.xls</strong> / <strong>.csv</strong> files. First row must be column names.<br>
+ Your data must include the following columns (names can differ; you can map them later):
+ </p>
+ <table>
+ <tr><th>Column</th><th>Description</th><th>Notes</th></tr>
+ <tr><td><strong>id</strong></td><td>Unit ID</td><td>Same unit uses the same ID across different years</td></tr>
+ <tr><td><strong>year</strong></td><td>Year</td><td>Time identifier, e.g. 2018, 2019...</td></tr>
+ <tr><td><strong>treated</strong></td><td>Treatment Indicator</td><td>1 = treatment group, 0 = control group (constant over time)</td></tr>
+ <tr><td><strong>post</strong></td><td>Post-Treatment Indicator</td><td>1 = treatment group after policy year; 0 = before policy or always for controls</td></tr>
+ <tr><td><strong>y</strong></td><td>Outcome Variable</td><td>The dependent variable you care about; must be numeric</td></tr>
+ </table>
+ <p style="font-size:.78rem;color:#8c8882;margin-top:12px;">For parallel trends testing, you need at least <strong>3 pre-policy periods</strong> of panel data.</p>
+ <input type="file" id="filein" accept=".csv,.xlsx,.xls" onchange="handleUpload(this)" style="display:block;margin-top:16px;margin-bottom:0;font-size:1rem;padding:10px;">
+ <details style="margin-top:16px;">
+ <summary style="cursor:pointer;font-size:.85rem;color:#3b5b8c;font-weight:600;">No data? Try with classic paper datasets (recommended)</summary>
+ <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+ <button class="btn primary lg" onclick="loadCK()" style="width:100%;text-align:center;justify-content:center;">Card &amp; Krueger (1994) — Minimum Wages and Employment</button>
+ <p style="font-size:.73rem;color:#8c8882;text-align:center;line-height:1.5;">American Economic Review | 410 fast-food restaurants | NJ vs PA<br>Classic 2x2 DID | Two periods only; event study unavailable</p>
+	 <button class="btn primary lg" onclick="loadMpdta()" style="width:100%;text-align:center;justify-content:center;margin-top:8px;">Single-Cohort DID Demo — Parallel Trends Test</button>
+	 <p style="font-size:.73rem;color:#8c8882;text-align:center;line-height:1.5;">50 units x 12 periods | 25 treated + 25 never-treated | All treated at t=7<br>Multi-period panel + single cohort = no staggered contamination</p>
+ </div>
+ </details>
+ </div>
+ <div class="card" id="preview-card" style="display:none;">
+ <h3>Data Preview <span id="rowcount" style="font-weight:400;font-size:.85rem;color:#8c8882;margin-left:8px;"></span></h3>
+ <div style="overflow:auto;max-height:300px;" id="preview-table"></div>
+ </div>
+ <div class="card" id="desc-card" style="display:none;">
+ <h3>Descriptive Statistics</h3>
+ <div id="desc-content"></div>
+ </div>
+ <div class="btn-row" style="justify-content:flex-end;">
+ <button class="btn primary lg" onclick="go('setup')">Next: Model Setup</button>
+ </div>
+</div>
+<div id="pg-setup" style="display:none;">
+ <h2>Step 2: Specify Your Variables</h2>
+ <p>Your data is uploaded. Now tell the system what each column represents.</p>
+ <div id="setup-empty" class="alert warn">Please upload data in Step 1 first.</div>
+ <div id="setup-form" style="display:none;">
+ <div class="card">
+ <h3>Variable Mapping</h3>
+ <div class="btn-row" style="margin-bottom:16px;">
+ 
+ </div>
+ <div class="grid2">
+ <div><label>Outcome Variable (Y) <span style="color:#c1292e;">*</span></label><select id="sel-y"></select><p style="font-size:.7rem;color:#8c8882;">e.g. profit, revenue, ROA — the variable you want to study the impact on</p></div>
+ <div><label>Treatment Indicator (D) <span style="color:#c1292e;">*</span></label><select id="sel-d"></select><p style="font-size:.7rem;color:#8c8882;">Select a 0/1 column: 1 = treated, 0 = not treated</p></div>
+ <div><label>Time Variable (T) <span style="color:#c1292e;">*</span></label><select id="sel-t"></select><p style="font-size:.7rem;color:#8c8882;">Select the year/time column</p></div>
+ <div><label>Unit ID（ID）</label><select id="sel-id"></select><p style="font-size:.7rem;color:#8c8882;">Unique identifier for each unit, e.g. company code</p></div>
+ </div>
+ <div style="margin-top:12px;"><label>Control Variables (optional, Ctrl+click to select multiple)</label><select id="sel-ctrl" multiple style="min-height:80px;"></select><p style="font-size:.7rem;color:#8c8882;">、 — including controls improves reliability</p></div>
+ </div>
+ <div class="card">
+ <h3>Analysis Options</h3>
+ <div class="grid2">
+ <div>
+ <label>Estimation Method</label>
+ <select id="sel-method"><option value="twfe">TWFE Two-Way Fixed Effects (recommended for multi-year panels)</option><option value="did">Classic 2x2 (for simple two-period cases only)</option></select>
+ </div>
+ <div>
+ <label>Additional Tests</label>
+ <label style="font-weight:400;display:flex;align-items:center;gap:6px;margin-top:8px;"><input type="checkbox" id="chk-es" checked> Parallel Trends Test (checks if pre-policy trends are parallel — important for multi-period panels)</label>
+ </div>
+ </div>
+ <div id="es-opts" style="margin-top:12px;padding:16px;background:#f5f4f1;border-radius:6px;">
+ <p style="font-size:.75rem;color:#8c8882;margin-bottom:8px;">Configure the event study window. Typically set to 5 pre-periods, 4 post-periods, base period = -1.</p>
+ <div class="grid3">
+ <div><label>Pre-periods</label><input type="number" id="es-leads" value="5" min="1" max="20"></div>
+ <div><label>Post-periods</label><input type="number" id="es-lags" value="4" min="1" max="20"></div>
+ <div><label>Base period (typically -1)</label><input type="number" id="es-base" value="-1" max="0"></div>
+ </div>
+ </div>
+ </div>
+ <div class="btn-row" style="justify-content:space-between;">
+ <button class="btn" onclick="go('data')">Back</button>
+ <button class="btn primary lg" onclick="runAll()">Run Analysis</button>
+ </div>
+ </div>
+</div>
+<div id="pg-results" style="display:none;">
+ <h2>Step 3: View Results</h2>
+ <p>Below are your DID results. Check whether the DID Estimate is significant (p &lt; 0.05) and whether the Parallel Trends chart shows pre-policy coefficients near zero.</p>
+ <div id="res-empty" class="alert info">No results yet. Go back to Step 2 and click Run Analysis.</div>
+ <div id="res-content" style="display:none;">
+ <div class="stats" id="res-stats"></div>
+ <div id="res-notes" style="margin-bottom:16px;"></div>
+ <div class="card">
+ <h3>Regression Results <span style="font-weight:400;font-size:.8rem;color:#8c8882;float:right;">Find the key variable row; p &lt; 0.05 indicates a significant effect <label style="display:inline;font-weight:400;margin-left:12px;"><input type="checkbox" id="chk-cluster" onchange="toggleCl()"> Clustered SE</label></span></h3>
+ <div id="res-table"></div>
+ </div>
+ <div class="card" style="margin-top:16px;">
+ <h3>Parallel Test Chart</h3>
+ <div id="chart1" style="width:100%;height:420px;"></div>
+ <p style="font-size:.78rem;color:#57534e;margin-top:6px;line-height:1.5;">How to read this chart: <strong>X-axis = time relative to treatment</strong> (negative = pre, positive = post). <strong>Y-axis = treatment-control difference</strong>. Bars = 95% CI. Pre-policy points near zero (CIs crossing zero) indicate parallel trends hold. Post-policy points deviating from zero suggest a causal effect.</p>
+ </div>
+ <div class="btn-row" style="justify-content:flex-end;margin-top:16px;">
+ <button class="btn" onclick="exportPNG()">Export Chart (SVG)</button>
+ <button class="btn" onclick="exportCSV()">Export Results (CSV)</button>
+ <button class="btn" onclick="exportHTML()">Export Report (HTML)</button>
+ </div>
+ </div>
+</div>
+</main>
+
+<script src="lib/xlsx.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// INLINE APP
+// ═══════════════════════════════════════════════════════
+console.clear();console.log('DiD Lab v3 — initializing');
+
+let DATA=null,COLS=[];
+let CFG={yCol:'',dCol:'',tCol:'',idCol:'',ctrl:[],method:'twfe',es:true,pl:false,esLeads:5,esLags:4,esBase:-1};
+let OUTPUT=null,ES_OUT=null,useCluster=false;
+let page='data';
+
+// ═══ MATH ═══
+function matMul(A,B){const m=A.length,n=B[0].length,p=B.length,r=Array.from({length:m},()=>Array(n).fill(0));for(let i=0;i<m;i++)for(let j=0;j<n;j++)for(let k=0;k<p;k++)r[i][j]+=A[i][k]*B[k][j];return r}
+function matTrans(A){return A[0].map((_,i)=>A.map(r=>r[i]))}
+function matInv(A){const n=A.length;let M=A.map(r=>[...r]),I=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0));for(let i=0;i<n;i++){let p=i;for(let j=i+1;j<n;j++)if(Math.abs(M[j][i])>Math.abs(M[p][i]))p=j;if(Math.abs(M[p][i])<1e-12)throw new Error('Singular matrix');if(p!==i){[M[i],M[p]]=[M[p],M[i]];[I[i],I[p]]=[I[p],I[i]]}const d=M[i][i];for(let j=0;j<n;j++){M[i][j]/=d;I[i][j]/=d}for(let j=0;j<n;j++){if(j===i)continue;const f=M[j][i];for(let k=0;k<n;k++){M[j][k]-=f*M[i][k];I[j][k]-=f*I[i][k]}}}return I}
+function ols(X,y){const Xt=matTrans(X);let XtX=matMul(Xt,X);for(let i=0;i<XtX.length;i++)XtX[i][i]+=1e-8;const XtY=matMul(Xt,matTrans([y]).map(r=>[r[0]]));const XtX_inv=matInv(XtX);const b=matMul(XtX_inv,XtY).map(r=>r[0]);const yHat=X.map(r=>r.reduce((s,x,j)=>s+x*b[j],0));const res=y.map((yi,i)=>yi-yHat[i]);const ym=y.reduce((a,b)=>a+b,0)/y.length;const ssT=y.reduce((s,yi)=>s+(yi-ym)**2,0);const ssR=res.reduce((s,e)=>s+e**2,0);const r2=ssT>0?1-ssR/ssT:0;return{beta:b,residuals:res,yHat,r2,n:y.length,k:X[0].length,ssT,ssR}}
+function seOLS(X,res,n,k){const s2=res.reduce((s,e)=>s+e**2,0)/(n-k);let XtX=matMul(matTrans(X),X);for(let i=0;i<XtX.length;i++)XtX[i][i]+=1e-8;const XtX_inv=matInv(XtX);return XtX_inv.map((r,i)=>Math.sqrt(s2*r[i]))}
+function clusterSE(X,res,clusters){const n=X.length,k=X[0].length;let XtX=matMul(matTrans(X),X);for(let i=0;i<XtX.length;i++)XtX[i][i]+=1e-8;const XtX_inv=matInv(XtX);const grps={};for(let i=0;i<n;i++){const c=String(clusters[i]);if(!grps[c])grps[c]=[];grps[c].push(i)}const G=Object.keys(grps).length;let meat=Array.from({length:k},()=>Array(k).fill(0));for(const idx of Object.values(grps)){for(let a=0;a<k;a++){let sa=0;for(const i of idx)sa+=X[i][a]*res[i];for(let b=0;b<k;b++){let sb=0;for(const i of idx)sb+=X[i][b]*res[i];meat[a][b]+=sa*sb}}}const corr=(G/(G-1))*((n-1)/(n-k));for(let a=0;a<k;a++)for(let b=0;b<k;b++)meat[a][b]*=corr;const V=matMul(matMul(XtX_inv,meat),XtX_inv);return V.map((r,i)=>V[i][i]>0?Math.sqrt(V[i][i]):0)}
+function normCDF(x){if(x<0)return 1-normCDF(-x);const t=1/(1+.2316419*x);const d=.398942280401433;return 1-d*Math.exp(-x*x/2)*t*(.31938153+t*(-.356563782+t*(1.781477937+t*(-1.821255978+t*1.330274429))))}
+function normQ(p){if(p<=0)return -Infinity;if(p>=1)return Infinity;const q=Math.min(p,1-p);const a=[-39.69683,220.946,-275.9285,138.3578,-30.6648,2.50663];const b=[-54.4761,161.5859,-155.699,66.8013,-13.2807];const c=[-.0077849,-.322396,-2.400758,-2.549733,4.374664,2.938164];const d=[.0077847,.322467,2.445134,3.754409];let x;if(q<.02425){x=Math.sqrt(-2*Math.log(q));x=((((c[0]*x+c[1])*x+c[2])*x+c[3])*x+c[4])*x+c[5];x/=(((d[0]*x+d[1])*x+d[2])*x+d[3])*x+1}else{x=q-.5;const r=x*x;x=(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*x;x/=((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1}return p<.5?x:-x}
+function fmt(n,d=4){return n==null||isNaN(n)?'—':Number(n).toFixed(d)}
+function fmtP(p){if(p==null||isNaN(p))return'—';let s='';if(p<.01)s='***';else if(p<.05)s='**';else if(p<.1)s='*';return(p<.0001?'<0.0001':p.toFixed(4))+s}
+function infer(beta,se){const t=se>0?beta/se:NaN;const p=isNaN(t)?NaN:2*(1-normCDF(Math.abs(t)));const z=normQ(.975);return{t,p,lo:beta-z*se,hi:beta+z*se}}
+function describe(vals){const num=vals.filter(v=>v!=null&&v!==''&&!isNaN(Number(v))).map(Number);const n=num.length;if(!n)return{mean:NaN,std:NaN,min:NaN,max:NaN,n:0,miss:vals.length};const m=num.reduce((a,b)=>a+b,0)/n;const v=num.reduce((s,x)=>s+(x-m)**2,0)/(n-1);return{mean:m,std:Math.sqrt(v),min:Math.min(...num),max:Math.max(...num),n,miss:vals.length-n}}
+
+// ═══ CSV ═══
+function parseCSV(text){const lines=text.trim().split(/\r?\n/);if(lines.length<2)return[];const headers=lines[0].replace(/^﻿/,'').split(',').map(h=>h.trim().replace(/^"|"$/g,''));const rows=[];for(let i=1;i<lines.length;i++){const vals=parseCSVLine(lines[i]);if(vals.length<headers.length)continue;const row={};headers.forEach((h,j)=>{row[h]=(vals[j]||'').trim().replace(/^"|"$/g,'')});rows.push(row)}return rows}
+function parseCSVLine(line){const result=[];let cur='',inQ=false;for(let i=0;i<line.length;i++){const c=line[i];if(inQ){if(c==='"')inQ=false;else cur+=c}else{if(c===','){result.push(cur);cur=''}else if(c==='"')inQ=true;else cur+=c}}result.push(cur);return result}
+
+// ═══ DID ═══
+function estimateTWFE(data,cfg){
+ // Frisch-Waugh-Lovell: within-transform instead of explicit dummies → O(n), not O(k³)
+ const{yCol,dCol,tCol,idCol,ctrl=[]}=cfg;
+ const allVars=[yCol,dCol,...ctrl.filter(c=>{
+ // Only include controls that vary within ID (otherwise they're absorbed by FE)
+ const grps={};data.forEach(r=>{const g=String(r[idCol]);if(!grps[g])grps[g]=new Set();grps[g].add(Number(r[c]))});
+ return [...Object.values(grps)].some(s=>s.size>1); // varies within at least one group
+ })];
+ // Step 1: demean by id
+ const byId={};data.forEach(r=>{const g=String(r[idCol]);if(!byId[g])byId[g]=[];byId[g].push(r)});
+ const d1=[];for(const rows of Object.values(byId)){const means={};allVars.forEach(v=>means[v]=rows.reduce((s,r)=>s+(Number(r[v])||0),0)/rows.length);rows.forEach(r=>{const nr={...r};allVars.forEach(v=>nr[v]=(Number(r[v])||0)-means[v]);d1.push(nr)})}
+ // Step 2: demean by time
+ const byYr={};d1.forEach(r=>{const g=Number(r[tCol]);if(!byYr[g])byYr[g]=[];byYr[g].push(r)});
+ const d2=[];for(const rows of Object.values(byYr)){const means={};allVars.forEach(v=>means[v]=rows.reduce((s,r)=>s+(Number(r[v])||0),0)/rows.length);rows.forEach(r=>{const nr={...r};allVars.forEach(v=>nr[v]=(Number(r[v])||0)-means[v]);d2.push(nr)})}
+ // Step 3: OLS on residualized data (tiny matrix: ~2 cols instead of ~500)
+ const Xvars=[dCol,...ctrl.filter(c=>allVars.includes(c))];const colNames=['(Intercept)',dCol,...ctrl.filter(c=>allVars.includes(c))];
+ const X=d2.map(r=>[1,...Xvars.map(c=>Number(r[c])||0)]);const y=d2.map(r=>Number(r[yCol])||0);
+ const{beta,residuals,r2,n,k}=ols(X,y);const se=seOLS(X,residuals,n,k);
+ let seCl=null;if(idCol){const cids=data.map(r=>String(r[idCol]));seCl=clusterSE(X,residuals,cids)}
+ const dc=colNames.length;const results=colNames.map((nm,j)=>{const s=se[j];const inf=infer(beta[j],s);const r={var:nm,coef:beta[j],se:s,t:inf.t,p:inf.p,lo:inf.lo,hi:inf.hi};if(seCl){const cs=seCl[j];const ci=infer(beta[j],cs);r.se2=cs;r.t2=ci.t;r.p2=ci.p;r.lo2=ci.lo;r.hi2=ci.hi}return r});
+ const did=results[1]||null;return{results,did,r2,n,k:dc,colNames,hasCl:!!idCol,method:'TWFE'};
+}
+function estimateClassic(data,cfg){
+ const{yCol,dCol,tCol,idCol,ctrl=[]}=cfg;
+ const X=data.map(r=>{const d=Number(r[dCol]),t=Number(r[tCol]);return[1,d,t,d*t,...ctrl.map(c=>Number(r[c])||0)]});const y=data.map(r=>Number(r[yCol])||0);
+ const names=['(Intercept)',dCol,tCol,dCol+' x '+tCol,...ctrl];
+ const{beta,residuals,r2,n,k}=ols(X,y);const se=seOLS(X,residuals,n,k);
+ let seCl=null;if(idCol){const cids=data.map(r=>String(r[idCol]));seCl=clusterSE(X,residuals,cids)}
+ const results=names.map((nm,j)=>{const s=se[j];const inf=infer(beta[j],s);const r={var:nm,coef:beta[j],se:s,t:inf.t,p:inf.p,lo:inf.lo,hi:inf.hi};if(seCl){const cs=seCl[j];const ci=infer(beta[j],cs);r.se2=cs;r.t2=ci.t;r.p2=ci.p;r.lo2=ci.lo;r.hi2=ci.hi}return r});
+ return{results,did:results[3]||null,r2,n,k,colNames:names,hasCl:!!idCol,method:'Classic 2x2 DiD'}}
+function parallelTrendsDummy(data,cfg,leads=5,lags=4,base=-1){
+ const{yCol,dCol,timeCol,idCol}=cfg;
+ // 1. Treatment timing per unit
+ const timing={};data.forEach(r=>{const id=String(r[idCol]),t=Number(r[timeCol]),d=Number(r[dCol]);if(d===1&&(!timing[id]||t<timing[id]))timing[id]=t});
+ // 2. Classify units: never-treated, ever-treated
+ const ntSet=new Set();data.forEach(r=>{if(timing[String(r[idCol])]===undefined)ntSet.add(String(r[idCol]))});
+ const ntCount=ntSet.size;
+ // 3. For each calendar year, compute control mean (prefer never-treated, fall back to not-yet-treated)
+ const years=[...new Set(data.map(r=>Number(r[timeCol])))].sort((a,b)=>a-b);
+ const ctrlMean={};let ctrlType='never-treated';
+ for(const y of years){
+ let cv=data.filter(r=>Number(r[timeCol])===y&&isFinite(Number(r[yCol]))&&ntSet.has(String(r[idCol])));
+ if(cv.length<2){cv=data.filter(r=>Number(r[timeCol])===y&&isFinite(Number(r[yCol]))&&(timing[String(r[idCol])]===undefined||timing[String(r[idCol])]>y));ctrlType='never+not-yet-treated'}
+ ctrlMean[y]=cv.length>=2?cv.reduce((s,r)=>s+Number(r[yCol]),0)/cv.length:null;
+ }
+ // 4. For each treated obs, diff vs control mean in same calendar year
+ const byPeriod={};
+ for(const row of data){
+ const id=String(row[idCol]),t=Number(row[timeCol]),val=Number(row[yCol]);
+ if(!isFinite(val))continue;
+ const tt=timing[id];if(tt===undefined)continue;
+ let rel=t-tt;if(rel<=-leads)rel=-leads;if(rel>=lags)rel=lags;if(rel===base)continue;
+ const cm=ctrlMean[t];if(cm===null)continue;
+ if(!byPeriod[rel])byPeriod[rel]=[];byPeriod[rel].push(val-cm);
+ }
+ // 5. Aggregate per relative period
+ const periods=[];for(let k=-leads;k<=lags;k++)if(k!==base)periods.push(k);
+ const ers=periods.map(p=>{const vals=byPeriod[p]||[];if(vals.length<2)return{period:p,coef:NaN,se:NaN,t:NaN,p:NaN,lo:NaN,hi:NaN};const m=vals.reduce((a,b)=>a+b,0)/vals.length;const sd=Math.sqrt(vals.reduce((s,v)=>s+(v-m)**2,0)/(vals.length-1));const se=sd/Math.sqrt(vals.length);const ci=1.96*se;return{period:p,coef:m,se,t:m/se,p:2*(1-normCDF(Math.abs(m/se))),lo:m-ci,hi:m+ci}});
+ ers.sort((a,b)=>a.period-b.period);
+ const msg=ntCount>0?`Control group: ${ntCount} never-treated units (clean)`:`Control group: not-yet-treated units (staggered, potential bias)`;
+ return{eventResults:ers,basePeriod:base,leads,lags,periods:ers.map(r=>r.period),coefficients:ers.map(r=>r.coef),ciLower:ers.map(r=>r.lo),ciUpper:ers.map(r=>r.hi),se:ers.map(r=>r.se),r2:0,n:data.length,k:periods.length,ctrlMsg:msg}}
+// ═══ NAV ═══
+function go(pg){
+ if(page==='data'&&pg!=='data'&&(!DATA||!DATA.length)){alert('Please load data first');return}
+ page=pg;document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.dataset.pg===pg));
+ ['data','setup','results'].forEach(p=>document.getElementById('pg-'+p).style.display=p===pg?'':'none');
+ if(pg==='data')renderData();if(pg==='setup')renderSetup();if(pg==='results')renderResults();window.scrollTo(0,0);
+}
+document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();go(a.dataset.pg)}));
+
+// ═══ DATA ═══
+function setData(data,cfg){DATA=data;COLS=Object.keys(data[0]);if(cfg)CFG={...CFG,...cfg};OUTPUT=null;ES_OUT=null;renderData();if(page==='setup')renderSetup()}
+async function handleUpload(inp){const f=inp.files[0];if(!f)return;try{let data;const ext=f.name.split('.').pop().toLowerCase();if(ext==='csv'){data=parseCSV(await f.text())}else if(ext==='xlsx'||ext==='xls'){if(typeof XLSX==='undefined'){alert('Excel library not loaded. Please refresh the page and try again');return}const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const sheet=wb.Sheets[wb.SheetNames[0]];data=XLSX.utils.sheet_to_json(sheet,{defval:''})}else{alert('Unsupported file format: .'+ext+'\nPlease use CSV or Excel files');return}if(!data||!data.length){alert('File is empty or cannot be parsed');return}setData(data,null)}catch(e){alert('Parse failed: '+e.message);console.error(e)}}
+async function loadCK(){
+ // Card & Krueger (1994) AER — NJ minimum wage
+ // Controls per Table 4: co_owned + chain dummies (BK, KFC, WD; RR is reference)
+ // Region dummies (southj, centralj, northj, pa1, pa2, shore) available for Model v
+ try{const r=await fetch('data/card_krueger_1994.csv');if(!r.ok)throw new Error('HTTP '+r.status);const d=parseCSV(await r.text());
+ setData(d,{yCol:'fte',dCol:'treated',tCol:'post',idCol:'id',ctrl:['co_owned','chain_BK','chain_KFC','chain_WD'],method:'did',es:false})
+ }catch(e){alert('Load failed: '+e.message)}
+}
+function loadEdu(){setData(generateEdu(),{yCol:'enrollment_rate',dCol:'treated',tCol:'period',idCol:'district_id',ctrl:['income_per_capita'],method:'did',es:false})}
+async function loadEgov(){
+ try{const r=await fetch('data/egov_clean.csv');if(!r.ok)throw new Error('HTTP '+r.status);const d=parseCSV(await r.text());setData(d,{yCol:'city_ratio_lag1',dCol:'treated',tCol:'year',idCol:'id',ctrl:['GDP','fin_exp','illiteracy_rate','internet_popularization','govtransp_interp1','count'],method:'twfe',es:true,pl:false,esLeads:5,esLags:4,esBase:-1})}catch(e){alert('Load failed: '+e.message+'\nPlease make sure to access via http://localhost:8080 and the server is running')}
+}
+function loadMpdta(){
+ // Single-cohort DID: 50 units, 12 periods, all treated at t=7
+ // 25 treated + 25 never-treated = zero staggered contamination
+ const d=[];let s=99;const rnd=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
+ for(let i=1;i<=50;i++){
+ const treated=i<=25?1:0;const fe=10+rnd()*15;const trend=1.8+rnd()*0.4;
+ for(let t=0;t<12;t++){
+ let y=30+fe+trend*t+rnd()*5;
+ if(treated&&t>=7)y+=2+1.5*(t-7)+rnd()*3;
+ d.push({id:i,treated,period:t,post:(treated&&t>=7)?1:0,y:Math.round(y*100)/100,x1:Math.round((30+rnd()*50)*10)/10});
+ }
+ }
+ setData(d,{yCol:'y',dCol:'post',tCol:'period',idCol:'id',ctrl:['x1'],method:'twfe',es:true,pl:false,esLeads:6,esLags:4,esBase:-1});
+}
+function loadSynth(){setData(generateSynth(),{yCol:'y',dCol:'post',tCol:'period',idCol:'id',ctrl:['x1','x2'],method:'twfe',es:true,pl:false,esLeads:5,esLags:4,esBase:-1})}
+function loadMA(){setData(generateMA(),{yCol:'ROA',dCol:'treat',tCol:'year',idCol:'id',ctrl:['Size','Lev','Cash','Board','Indep','Top1'],method:'twfe',es:true,pl:false,esLeads:6,esLags:8,esBase:-1})}
+
+// CK data loaded from data/card_krueger_1994.csv
+function generateEdu(){const d=[];let seed=42;const rnd=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646};for(let i=1;i<=100;i++){const tr=i<=50?1:0;const base=60+rnd()*20;const eff=tr?8+rnd()*4:0;d.push({district_id:i,district_type:tr?'treatment':'control',treated:tr,period:0,enrollment_rate:base+rnd()*6-3,student_population:800+Math.floor(rnd()*400),teacher_count:35+Math.floor(rnd()*15),income_per_capita:20000+Math.floor(rnd()*15000)});d.push({district_id:i,district_type:tr?'treatment':'control',treated:tr,period:1,enrollment_rate:base+eff+rnd()*6-3,student_population:820+Math.floor(rnd()*400),teacher_count:37+Math.floor(rnd()*15),income_per_capita:21000+Math.floor(rnd()*15000)})}return d}
+
+// ═══ RENDER ═══
+function renderData(){
+ if(!DATA||!DATA.length)return;
+ document.getElementById('preview-card').style.display='';document.getElementById('desc-card').style.display='';
+ const cols=COLS,prev=DATA.slice(0,30);
+ let h='<table><thead><tr><th>#</th>';cols.forEach(c=>h+=`<th>${c}</th>`);h+='</tr></thead><tbody>';
+ prev.forEach((r,i)=>{h+=`<tr><td style="color:#8c8882;">${i+1}</td>`;cols.forEach(c=>h+=`<td>${String(r[c]||'').slice(0,14)}</td>`);h+='</tr>'});h+='</tbody></table>';
+ document.getElementById('preview-table').innerHTML=h;document.getElementById('rowcount').textContent=`${Math.min(30,DATA.length)} / ${DATA.length} rows`;
+ let dh='<table><thead><tr><th>Variable</th><th>N</th><th>Mean</th><th>Std Dev</th><th>Min</th><th>Max</th></tr></thead><tbody>';
+ cols.forEach(c=>{const s=describe(DATA.map(r=>r[c]));dh+=`<tr><td><strong>${c}</strong></td><td>${s.n}</td><td>${fmt(s.mean,3)}</td><td>${fmt(s.std,3)}</td><td>${fmt(s.min,3)}</td><td>${fmt(s.max,3)}</td></tr>`});dh+='</tbody></table>';
+ document.getElementById('desc-content').innerHTML=dh;
+}
+function renderSetup(){
+ if(!DATA||!DATA.length){document.getElementById('setup-empty').style.display='';document.getElementById('setup-form').style.display='none';return}
+ document.getElementById('setup-empty').style.display='none';document.getElementById('setup-form').style.display='';
+ const sel=(id,val,opt=false,multi=false)=>{const s=document.getElementById(id);s.innerHTML='';s.multiple=multi;if(opt){const o=document.createElement('option');o.value='';o.textContent='-- None --';s.appendChild(o)}COLS.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;if(Array.isArray(val)?val.includes(c):c===val)o.selected=true;s.appendChild(o)})};
+ sel('sel-y',CFG.yCol);sel('sel-d',CFG.dCol);sel('sel-t',CFG.tCol);sel('sel-id',CFG.idCol,true);sel('sel-ctrl',CFG.ctrl,false,true);
+ document.getElementById('sel-method').value=CFG.method;document.getElementById('chk-es').checked=CFG.es;
+ document.getElementById('es-leads').value=CFG.esLeads;document.getElementById('es-lags').value=CFG.esLags;document.getElementById('es-base').value=CFG.esBase;
+ document.getElementById('es-opts').style.display=CFG.es?'':'none';
+}
+
+
+// ═══ RUN ═══
+async function runAll(){
+  CFG.yCol=document.getElementById('sel-y').value;CFG.dCol=document.getElementById('sel-d').value;CFG.tCol=document.getElementById('sel-t').value;CFG.idCol=document.getElementById('sel-id').value;CFG.ctrl=Array.from(document.getElementById('sel-ctrl').selectedOptions).map(o=>o.value);CFG.method=document.getElementById('sel-method').value;CFG.es=document.getElementById('chk-es').checked;CFG.pl=false;CFG.esLeads=parseInt(document.getElementById('es-leads').value)||5;CFG.esLags=parseInt(document.getElementById('es-lags').value)||4;CFG.esBase=parseInt(document.getElementById('es-base').value)||-1;
+  if(!CFG.yCol||!CFG.dCol||!CFG.tCol){alert('Please select Y, D, T variables');return}if(!DATA||!DATA.length){alert('Please load data first');return}
+  document.body.style.cursor='wait';const cfg={yCol:CFG.yCol,dCol:CFG.dCol,tCol:CFG.tCol,idCol:CFG.idCol||undefined,ctrl:CFG.ctrl};
+  try{OUTPUT=CFG.method==='twfe'?estimateTWFE(DATA,cfg):estimateClassic(DATA,cfg);console.log('OK: coef='+OUTPUT.did.coef+' p='+OUTPUT.did.p)}catch(e){
+    let hint='';
+    if((e.message||'').includes('Singular'))hint='\n\nPossible causes:\n1. Control variables perfectly collinear with treatment variable\n2. Treatment variable time-invariant under TWFE (switch to classic 2x2)\n3. Too many controls relative to sample size\n\nSuggestions: reduce controls or switch method.';
+    else if((e.message||'').includes('undefined'))hint='\n\nA variable name does not exist in the data. Check your variable selections.';
+    else hint='\n\nError: '+e.message;
+    alert('Regression failed'+hint);document.body.style.cursor='';return;
+  }
+  ES_OUT=null;if(CFG.es){try{ES_OUT=parallelTrendsDummy(DATA,{...cfg,timeCol:CFG.tCol},CFG.esLeads,CFG.esLags,CFG.esBase);console.log('ES OK')}catch(e){console.error('ES fail:',e)}}
+  useCluster=false;go('results');document.body.style.cursor='';
+  if(ES_OUT)setTimeout(()=>renderESChart(),200);
+}
+
+// ═══ RESULTS ═══
+function renderResults(){
+ if(!OUTPUT){document.getElementById('res-empty').style.display='';document.getElementById('res-content').style.display='none';return}
+ document.getElementById('res-empty').style.display='none';document.getElementById('res-content').style.display='';
+ const o=OUTPUT,d=o.did,uc=useCluster&&o.hasCl;
+ document.getElementById('res-stats').innerHTML=`<div class="stat"><div class="v">${fmt(d.coef)}</div><div class="l">DID Estimate</div></div><div class="stat"><div class="v">${fmt(uc?(d.se2??d.se):d.se)}</div><div class="l">Std Error</div></div><div class="stat"><div class="v" style="color:${(uc?(d.p2??d.p):d.p)<.05?'#217a4b':'#1c1917'}">${fmtP(uc?(d.p2??d.p):d.p)}</div><div class="l">p-value</div></div><div class="stat"><div class="v">${fmt(o.r2)}</div><div class="l">R-squared</div></div><div class="stat"><div class="v">${o.n}</div><div class="l">Observations</div></div><div class="stat"><div class="v">${o.method}</div><div class="l">Method</div></div>`;
+ let notes=[];if(!CFG.es)notes.push('Event study disabled Parallel Test — ，Study 。amp;mdash; this dataset has only two periods.');if(!ES_OUT&&CFG.es)notes.push('Event study failed. Check if leads/lags exceed the data range.');
+ document.getElementById('res-notes').innerHTML=notes.length?notes.map(n=>'<div class="alert info" style="margin-bottom:6px;font-size:.8rem;">'+n+'</div>').join(''):'';
+ renderTable();
+}
+function renderTable(){
+ const o=OUTPUT,uc=useCluster&&o.hasCl;let h='<table><thead><tr><th>Variable</th><th>Coef</th><th>Std Error</th><th>t-Stat</th><th>p-value</th><th>95% CI</th></tr></thead><tbody>';
+ o.results.forEach(r=>{const s=uc?(r.se2??r.se):r.se;const t=uc?(r.t2??r.t):r.t;const p=uc?(r.p2??r.p):r.p;const lo=uc?(r.lo2??r.lo):r.lo;const hi=uc?(r.hi2??r.hi):r.hi;const hl=r.var===CFG.dCol||r.var.includes('x');h+=`<tr style="${hl?'background:#f3f6fa;font-weight:700;':''}"><td>${r.var}</td><td>${fmt(r.coef)}</td><td>${fmt(s)}</td><td>${fmt(t)}</td><td style="color:${p<.05?'#217a4b':'#8c8882'};font-weight:700;">${fmtP(p)}</td><td>[${fmt(lo)}, ${fmt(hi)}]</td></tr>`});
+ h+='</tbody></table>';document.getElementById('res-table').innerHTML=h;
+}
+function toggleCl(){useCluster=document.getElementById('chk-cluster').checked;renderTable()}
+
+// ═══ CHARTS ═══
+function renderESChart(){
+ if(!ES_OUT||!ES_OUT.periods||!ES_OUT.periods.length)return;const d=ES_OUT,c=document.getElementById('chart1');if(!c)return;c.innerHTML='<div style="text-align:center;padding:40px;color:#8c8882;">Rendering...</div>';const W=c.clientWidth||700;if(W<50){setTimeout(()=>renderESChart(),150);return}const H=420,pad={t:30,r:40,b:60,l:72},pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+ const pts=[],coefs=[],los=[],his=[];
+ for(let i=0;i<d.periods.length;i++){if(isFinite(d.coefficients[i])&&isFinite(d.ciLower[i])&&isFinite(d.ciUpper[i])){pts.push(d.periods[i]);coefs.push(d.coefficients[i]);los.push(d.ciLower[i]);his.push(d.ciUpper[i])}}
+ if(!pts.length){c.innerHTML='<div style="text-align:center;padding:40px;color:#c1292e;">Event study coefficients invalid. Please check model settings.</div>';return}
+ const yMin=Math.min(...los,0)-.04,yMax=Math.max(...his,0)+.04,xMin=Math.min(...pts),xMax=Math.max(...pts);
+ const sx=x=>pad.l+(x-xMin)/(xMax-xMin)*pw,sy=y=>H-pad.b-(y-yMin)/(yMax-yMin)*ph;
+ let g=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${H}" fill="#fafaf9"/>`;
+ // Grid
+ const yStep=Math.pow(10,Math.floor(Math.log10((yMax-yMin)/5)+.5));let yTick=yStep*Math.floor(yMin/yStep);
+ for(;yTick<=yMax+yStep/2;yTick+=yStep){const ys=sy(yTick);g+=`<line x1="${pad.l}" y1="${ys}" x2="${W-pad.r}" y2="${ys}" stroke="#e7e5e2" stroke-width="1"/>`;g+=`<text x="${pad.l-8}" y="${ys+4}" fill="#8c8882" font-size="11" text-anchor="end" font-family="Inter,sans-serif">${yTick.toFixed(3)}</text>`}
+ g+=`<line x1="${pad.l}" y1="${sy(0)}" x2="${W-pad.r}" y2="${sy(0)}" stroke="#a8a29e" stroke-width="1.2" stroke-dasharray="6,3"/>`;
+ // X ticks
+ pts.forEach(p=>{const xs=sx(p);g+=`<line x1="${xs}" y1="${H-pad.b}" x2="${xs}" y2="${H-pad.b+6}" stroke="#8c8882"/>`;g+=`<text x="${xs}" y="${H-pad.b+20}" fill="#8c8882" font-size="11" text-anchor="middle" font-family="Inter,sans-serif">${p}</text>`});
+ // CI + points
+ let linePts='';for(let i=0;i<pts.length;i++){const x=sx(pts[i]),y0=sy(los[i]),y1=sy(his[i]),yc=sy(coefs[i]);g+=`<rect x="${x-8}" y="${Math.min(y0,y1)}" width="16" height="${Math.abs(y1-y0)}" fill="rgba(59,91,140,0.12)" rx="2"/>`;g+=`<circle cx="${x}" cy="${yc}" r="5" fill="#3b5b8c" stroke="#fff" stroke-width="1.5"/>`;linePts+=`${i>0?' ':''}${x},${yc}`}
+ g+=`<polyline points="${linePts}" fill="none" stroke="#3b5b8c" stroke-width="2.2"/>`;
+ // Axes
+ g+=`<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#8c8882" stroke-width="1.2"/>`;g+=`<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#8c8882" stroke-width="1.2"/>`;
+ g+=`<text x="${W/2}" y="${H-8}" fill="#1c1917" font-size="13" font-weight="600" text-anchor="middle" font-family="Inter,sans-serif">Relative Time (Event Time)</text>`;
+ g+=`<text x="16" y="${H/2}" fill="#1c1917" font-size="13" font-weight="600" text-anchor="middle" transform="rotate(-90,16,${H/2})" font-family="Inter,sans-serif">Treatment Effect</text>`;
+ if(d.basePeriod!==undefined){const bx=sx(d.basePeriod);if(bx>pad.l&&bx<W-pad.r){g+=`<line x1="${bx}" y1="${pad.t}" x2="${bx}" y2="${H-pad.b}" stroke="#78716c" stroke-width="1" stroke-dasharray="3,3"/>`;g+=`<text x="${bx}" y="${pad.t-6}" fill="#78716c" font-size="10" text-anchor="middle" font-family="Inter,sans-serif">Base Period</text>`}}
+ g+='</svg>';c.innerHTML=g;setTimeout(()=>{const svgEl=c.querySelector('svg');if(svgEl)svgEl.setAttribute('width',c.clientWidth)},20);
+}
+// ═══ EXPORT ═══
+function exportPNG(){['chart1'].forEach(id=>{const c=document.getElementById(id);if(!c||!c.firstChild)return;const svg=c.firstChild;const ser=new XMLSerializer().serializeToString(svg);const blob=new Blob(['<?xml version="1.0"?>'+ser],{type:'image/svg+xml'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=id+'.svg';a.click();URL.revokeObjectURL(url)})}
+function exportCSV(){if(!OUTPUT)return;const uc=useCluster&&OUTPUT.hasCl;const rows=[['Variable','Coef','Std Error','t-Stat','p-value','CI','CI']];OUTPUT.results.forEach(r=>{rows.push([r.var,fmt(r.coef),fmt(uc?(r.se2??r.se):r.se),fmt(uc?(r.t2??r.t):r.t),fmt(uc?(r.p2??r.p):r.p),fmt(uc?(r.lo2??r.lo):r.lo),fmt(uc?(r.hi2??r.hi):r.hi)])});const csv='﻿'+rows.map(r=>r.join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='did-results.csv';a.click();URL.revokeObjectURL(url)}
+function exportHTML(){if(!OUTPUT)return;const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');const rows=OUTPUT.results.map(r=>`<tr><td>${esc(r.var)}</td><td>${fmt(r.coef)}</td><td>${fmt(r.se)}</td><td>${fmt(r.t)}</td><td>${fmtP(r.p)}</td></tr>`).join('');const h=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DID Report</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+ --bg:#f8f7f4;--surface:#fff;--text:#1a1a1a;--text2:#555;--text3:#999;
+ --accent:#2a3a5c;--accent-hover:#1a2840;--accent-light:#edf0f6;--accent-border:#d5dbe8;
+ --border:#e6e3dd;--border2:#d0ccc5;--shadow:0 1px 3px rgba(0,0,0,.03),0 3px 12px rgba(0,0,0,.05);
+ --radius:12px;--radius-sm:7px;--font:'Inter',-apple-system,sans-serif;--font-serif:'Newsreader',Georgia,serif;--font-mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;min-height:100vh;line-height:1.6;letter-spacing:-.01em}
+nav{width:260px;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;padding:36px 28px;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+nav h1{font-family:var(--font-serif);font-size:1.35rem;font-weight:600;color:var(--text);margin-bottom:2px;letter-spacing:-.02em}
+nav .subtitle{font-size:.72rem;color:var(--text3);margin-bottom:40px;font-weight:400;letter-spacing:0}
+nav a.nav-link{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);font-size:.88rem;color:var(--text2);text-decoration:none;margin-bottom:2px;font-weight:450;transition:all .2s ease}
+nav a.nav-link:hover{background:#f5f4f0;color:var(--text)}
+nav a.nav-link.active{background:var(--accent-light);color:var(--accent);font-weight:550}
+nav .nav-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#eeece6;font-size:.7rem;font-weight:600;color:var(--text3);flex-shrink:0}
+nav a.nav-link.active .nav-badge{background:var(--accent);color:#fff}
+nav .tribute{margin-top:auto;padding-top:24px;border-top:1px solid var(--border)}
+nav .tribute h4{font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;font-weight:500}
+nav .tribute .portraits{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:10px}
+nav .tribute .portrait{text-align:center}
+nav .tribute .portrait-circle{width:48px;height:48px;border-radius:50%;overflow:hidden;margin:0 auto 4px;border:2px solid var(--border)}
+nav .tribute .portrait-circle img{width:100%;height:100%;object-fit:cover}
+nav .tribute .portrait-name{font-size:.63rem;color:var(--text2);font-weight:600;line-height:1.3}
+nav .tribute .portrait-years{font-size:.55rem;color:var(--text3)}
+nav .tribute .portrait-desc{font-size:.52rem;color:var(--text3);line-height:1.2;margin-top:1px}
+nav .tribute .dedication{font-size:.58rem;color:var(--text3);text-align:center;line-height:1.6;margin-top:10px;font-style:italic}
+main{margin-left:260px;flex:1;padding:56px 72px;max-width:1060px}
+h2{font-family:var(--font-serif);font-size:2.1rem;font-weight:600;margin-bottom:6px;letter-spacing:-.02em;color:var(--text)}
+h2+p{color:var(--text2);margin-bottom:40px;font-size:.95rem;font-weight:400;letter-spacing:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card h3{font-family:var(--font-serif);font-size:1.05rem;font-weight:600;margin-bottom:18px;color:var(--text);letter-spacing:-.01em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s ease;font-family:var(--font);letter-spacing:-.005em;white-space:nowrap}
+.btn:hover{background:#f5f4f0;border-color:var(--border2)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:550}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.lg{padding:14px 28px;font-size:.95rem;font-weight:600}
+.btn.sm{padding:5px 14px;font-size:.78rem}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+label{display:block;font-size:.82rem;font-weight:550;margin-bottom:4px;color:var(--text);letter-spacing:-.005em}
+select,input[type=number],input[type=file]{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;font-family:var(--font);background:var(--surface);color:var(--text);transition:all .2s ease}
+select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(42,58,92,.08)}
+select[multiple]{min-height:100px}
+table{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums}
+th{background:#f8f7f4;padding:10px 14px;text-align:right;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);border-bottom:2px solid var(--border);font-weight:600}
+th:first-child,td:first-child{text-align:left}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:hover td{background:#fafaf8}
+#chart1{width:100%;height:440px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:28px}
+.stat{text-align:center;padding:20px 16px;background:#f8f7f4;border-radius:var(--radius-sm);border:1px solid var(--border)}
+.stat .v{font-size:1.25rem;font-weight:650;font-family:var(--font-mono);color:var(--text)}
+.stat .l{font-size:.62rem;color:var(--text3);text-transform:uppercase;margin-top:4px;letter-spacing:.06em;font-weight:500}
+.alert{padding:14px 18px;border-radius:var(--radius-sm);font-size:.84rem;margin-bottom:16px;font-weight:450}
+.alert.info{background:var(--accent-light);border:1px solid var(--accent-border);color:var(--accent)}
+.alert.warn{background:#fdf8f0;border:1px solid #f0dcc0;color:#8b6914}
+summary{font-weight:500;transition:color .2s}
+summary:hover{color:var(--accent-hover)}
+@media(max-width:768px){body{flex-direction:column}nav{width:100%;position:static;padding:20px}main{margin-left:0;padding:24px}.grid2,.grid3{grid-template-columns:1fr}}
+</style></head><body><h1>DID Analysis Report</h1><p>${new Date().toLocaleString()}</p><table>${rows}</table><p>R-squared=${fmt(OUTPUT.r2)} | N=${OUTPUT.n} | Method=${OUTPUT.method}</p></body></html>`;const blob=new Blob([h],{type:'text/html'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='did-report.html';a.click();URL.revokeObjectURL(url)}
+
+window.addEventListener('load',()=>console.log('DiD Lab v3 ready'));
+window.addEventListener('error',e=>{const el=document.createElement('div');el.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#c1292e;color:#fff;padding:12px;z-index:9999;font-size:13px;';el.textContent='Error: '+e.message+' (line '+e.lineno+')';document.body.appendChild(el)});
+</script>
+</body>
+</html>
