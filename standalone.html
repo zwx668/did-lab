@@ -308,6 +308,12 @@ function estimateClassic(data,cfg){
  return{results,did:results[3]||null,r2,n,k,colNames:names,hasCl:!!idCol,method:'Classic 2x2 DiD'}}
 function parallelTrendsDummy(data,cfg,leads=5,lags=4,base=-1){
  const{yCol,dCol,timeCol,idCol}=cfg;
+// 0. Covariate adjustment: residualize Y by controls
+ let yVal={};data.forEach(r=>{yVal[String(r[idCol])+"|"+Number(r[timeCol])]=Number(r[yCol])||0});
+ if(ctrl.length>0){
+   const Xc=data.map(r=>[1,...ctrl.map(c=>Number(r[c])||0)]);const yc=data.map(r=>Number(r[yCol])||0);
+   try{const{beta}=ols(Xc,yc);data.forEach((r,i)=>{yVal[String(r[idCol])+"|"+Number(r[timeCol])]=yc[i]-(Xc[i].slice(1).reduce((s,x,j)=>s+x*beta[j+1],0))})}catch(e){}
+ }
  // 1. Treatment timing per unit
  const timing={};data.forEach(r=>{const id=String(r[idCol]),t=Number(r[timeCol]),d=Number(r[dCol]);if(d===1&&(!timing[id]||t<timing[id]))timing[id]=t});
  // 2. Classify units: never-treated, ever-treated
@@ -317,14 +323,14 @@ function parallelTrendsDummy(data,cfg,leads=5,lags=4,base=-1){
  const years=[...new Set(data.map(r=>Number(r[timeCol])))].sort((a,b)=>a-b);
  const ctrlMean={};let ctrlType='never-treated';
  for(const y of years){
- let cv=data.filter(r=>Number(r[timeCol])===y&&isFinite(Number(r[yCol]))&&ntSet.has(String(r[idCol])));
- if(cv.length<2){cv=data.filter(r=>Number(r[timeCol])===y&&isFinite(Number(r[yCol]))&&(timing[String(r[idCol])]===undefined||timing[String(r[idCol])]>y));ctrlType='never+not-yet-treated'}
- ctrlMean[y]=cv.length>=2?cv.reduce((s,r)=>s+Number(r[yCol]),0)/cv.length:null;
+ let cv=data.filter(r=>Number(r[timeCol])===y&&isFinite(yVal[String(r[idCol])+"|"+y])&&ntSet.has(String(r[idCol])));
+ if(cv.length<2){cv=data.filter(r=>Number(r[timeCol])===y&&isFinite(yVal[String(r[idCol])+"|"+y])&&(timing[String(r[idCol])]===undefined||timing[String(r[idCol])]>y));ctrlType='never+not-yet-treated'}
+ ctrlMean[y]=cv.length>=2?cv.reduce((s,r)=>s+yVal[String(r[idCol])+"|"+y],0)/cv.length:null;
  }
  // 4. For each treated obs, diff vs control mean in same calendar year
  const byPeriod={};
  for(const row of data){
- const id=String(row[idCol]),t=Number(row[timeCol]),val=Number(row[yCol]);
+ const id=String(row[idCol]),t=Number(row[timeCol]),val=yVal[id+"|"+t];
  if(!isFinite(val))continue;
  const tt=timing[id];if(tt===undefined)continue;
  let rel=t-tt;if(rel<=-leads)rel=-leads;if(rel>=lags)rel=lags;if(rel===base)continue;
