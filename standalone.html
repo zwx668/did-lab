@@ -307,7 +307,7 @@ function estimateClassic(data,cfg){
  const results=names.map((nm,j)=>{const s=se[j];const inf=infer(beta[j],s);const r={var:nm,coef:beta[j],se:s,t:inf.t,p:inf.p,lo:inf.lo,hi:inf.hi};if(seCl){const cs=seCl[j];const ci=infer(beta[j],cs);r.se2=cs;r.t2=ci.t;r.p2=ci.p;r.lo2=ci.lo;r.hi2=ci.hi}return r});
  return{results,did:results[3]||null,r2,n,k,colNames:names,hasCl:!!idCol,method:'Classic 2x2 DiD'}}
 function parallelTrendsDummy(data,cfg,leads=5,lags=4,base=-1){
- const{yCol,dCol,timeCol,idCol}=cfg;
+ const{yCol,dCol,timeCol,idCol,ctrl=[]}=cfg;
 // 0. Covariate adjustment: residualize Y by controls
  let yVal={};data.forEach(r=>{yVal[String(r[idCol])+"|"+Number(r[timeCol])]=Number(r[yCol])||0});
  if(ctrl.length>0){
